@@ -1,15 +1,8 @@
-import dns from 'node:dns';
-// Forzamos a Node a usar IPv4 para evitar el error P1001 de Neon
-dns.setDefaultResultOrder('ipv4first');
-
-import 'dotenv/config'; // Carga las variables de entorno
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 
-// Usamos DIRECT_URL para evitar problemas con el pooler al hacer operaciones masivas
-const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
-const adapter = new PrismaPg({ connectionString: connectionString! });
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
 const IMG = {
@@ -33,16 +26,13 @@ function daysFromNow(days: number, hour = 23, minute = 30) {
 }
 
 async function seedAdmin() {
-  const env = process.env;
+  const env = (globalThis as typeof globalThis & {
+    process?: { env?: Record<string, string | undefined> };
+  }).process?.env;
   const email = env?.ADMIN_EMAIL?.toLowerCase();
   const password = env?.ADMIN_PASSWORD;
-  
-  if (!email || !password) {
-    throw new Error("Definí ADMIN_EMAIL y ADMIN_PASSWORD en .env");
-  }
-  
+  if (!email || !password) throw new Error("Definí ADMIN_EMAIL y ADMIN_PASSWORD en .env");
   const passwordHash = await bcrypt.hash(password, 12);
-  
   await prisma.user.upsert({
     where: { email },
     update: { passwordHash },
@@ -113,7 +103,7 @@ async function seedDemo() {
         ticketUrl: "https://www.passline.com",
         flyerUrl: e.flyerUrl,
         featured: e.featured,
-        status: "PUBLISHED",
+        status: "PUBLISHED" as const, // <-- SOLUCIÓN APLICADA AQUÍ
       },
     });
   }
@@ -127,7 +117,7 @@ async function seedDemo() {
       category: "Aniversario",
       lineup: ["Nina K", "DJ Sol", "Kairo"],
       flyerUrl: IMG.stage,
-      status: "PUBLISHED",
+      status: "PUBLISHED" as const, // <-- SOLUCIÓN APLICADA AQUÍ
     },
   });
 
@@ -172,6 +162,8 @@ async function main() {
 main()
   .catch((e) => {
     console.error(e);
-    process.exit(1);
+    (globalThis as typeof globalThis & {
+      process?: { exit(code?: number): never };
+    }).process?.exit(1);
   })
   .finally(() => prisma.$disconnect());
