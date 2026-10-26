@@ -4,8 +4,14 @@ import Link from "next/link";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { APP_TZ, cn, inTz } from "@/lib/utils";
+import { EventStatus } from '@prisma/client';
 
-type CalEvent = { slug: string; title: string; date: Date; status: "PUBLISHED" | "CANCELLED" };
+type CalEvent = {
+  title: string;
+  slug: string;
+  date: Date;
+  status: EventStatus;
+}
 
 const MONTHS = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
