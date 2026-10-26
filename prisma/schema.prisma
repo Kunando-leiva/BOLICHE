@@ -1,0 +1,150 @@
+generator client {
+  provider= "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") // <-- ESTO ES CLAVE
+}
+
+enum Role {
+  ADMIN
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+}
+
+enum InquiryType {
+  PRIVATE_EVENT
+  BIRTHDAY
+  CORPORATE
+  OTHER
+}
+
+enum InquiryStatus {
+  PENDING
+  CONTACTED
+  CLOSED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  role         Role     @default(ADMIN)
+  createdAt    DateTime @default(now())
+}
+
+model Event {
+  id            String         @id @default(cuid())
+  slug          String         @unique
+  title         String
+  description   String         @db.Text
+  date          DateTime
+  endTime       String?
+  doorsOpen     String?
+  category      String?
+  lineup        String[]
+  price         String?
+  ticketUrl     String?
+  flyerUrl      String?
+  flyerPublicId String?
+  featured      Boolean        @default(false)
+  status        EventStatus    @default(PUBLISHED)
+  albums        GalleryAlbum[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([date])
+  @@index([status])
+}
+
+model GalleryAlbum {
+  id        String      @id @default(cuid())
+  slug      String      @unique
+  title     String
+  date      DateTime
+  coverUrl  String?
+  featured  Boolean     @default(false)
+  published Boolean     @default(true)
+  eventId   String?
+  event     Event?      @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  items     MediaItem[]
+  createdAt DateTime    @default(now())
+
+  @@index([date])
+}
+
+model MediaItem {
+  id        String       @id @default(cuid())
+  albumId   String
+  album     GalleryAlbum @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  type      MediaType    @default(IMAGE)
+  url       String
+  publicId  String?
+  caption   String?
+  order     Int          @default(0)
+  createdAt DateTime     @default(now())
+
+  @@index([albumId])
+}
+
+model VenueInfo {
+  id          String   @id @default("main")
+  title       String   @default("El Salón")
+  description String   @default("") @db.Text
+  capacity    Int      @default(0)
+  address     String   @default("")
+  mapEmbedUrl String?
+  heroUrl     String?
+  amenities   String[]
+  eventTypes  String[]
+}
+
+model VenueSection {
+  id          String  @id @default(cuid())
+  name        String
+  description String  @default("")
+  capacity    Int?
+  imageUrl    String?
+  order       Int     @default(0)
+}
+
+model RentalInquiry {
+  id        String        @id @default(cuid())
+  name      String
+  email     String
+  phone     String
+  type      InquiryType   @default(PRIVATE_EVENT)
+  date      DateTime
+  guests    Int
+  message   String?       @db.Text
+  status    InquiryStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+
+  @@index([status])
+  @@index([email, createdAt])
+}
+
+model SiteSettings {
+  id           String  @id @default("main")
+  clubName     String  @default("LUNA Club")
+  tagline      String  @default("La noche empieza cuando sale la luna")
+  whatsapp     String  @default("")
+  instagram    String  @default("")
+  tiktok       String  @default("")
+  email        String  @default("")
+  hours        String  @default("")
+  heroImageUrl String?
+  heroVideoUrl String?
+}
